@@ -1,0 +1,13 @@
+= Nixpkgs JDK Dashbard
+
+A work-in-progress utility for displaying metadata about the Nix JDK package ecosystem.
+
+== Usage
+
+```
+./nix-jdk-dashboard [branch]
+```
+
+The default branch is `nixpkgs-unstable`
+
+ 
