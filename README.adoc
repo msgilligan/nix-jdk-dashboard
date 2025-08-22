@@ -5,7 +5,7 @@ A work-in-progress utility for displaying metadata about the Nix JDK package eco
 == Usage
 
 ```
-./nix-jdk-dashboard [branch]
+./nix-jdk-dashboard [flake-url | branch]
 ```
 
 The default branch is `nixpkgs-unstable`
