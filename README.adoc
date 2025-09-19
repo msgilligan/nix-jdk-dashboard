@@ -5,9 +5,12 @@ A work-in-progress utility for displaying metadata about the Nix JDK package eco
 == Usage
 
 ```
-./nix-jdk-dashboard [flake-url | branch]
+./nix-jdk-dashboard.sh [flake-url | branch]
 ```
 
 The default branch is `nixpkgs-unstable`
+
+You can pipe to `jq` to get formatted output.
+
 
  

@@ -12,8 +12,9 @@ else
     FLAKE_URL="github:nixos/nixpkgs/$ARG1"
 fi
 
-echo
-echo Searching $FLAKE_URL
-echo
-nix build .#jdk-dashboard --override-input nixpkgs $FLAKE_URL
-cat result | jq
+SYSTEM=`nix eval --impure --expr builtins.currentSystem`
+
+TARGET_PATH=".#dashboard.${SYSTEM}"
+
+echo "\nSearching $FLAKE_URL for $SYSTEM\n"  >&2
+nix eval --json $TARGET_PATH --override-input nixpkgs $FLAKE_URL

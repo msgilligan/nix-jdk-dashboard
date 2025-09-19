@@ -6,59 +6,75 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = inputs @ { self, nixpkgs, flake-utils }:
+    let
+      lib = nixpkgs.lib;
+
+      allowedUnfree = [ "graalvm-oracle" ];
+
+      # Return a key to path mapping
+      namePathEntry = name: version: pkgAttrs:
+        let
+          key = if version == null then name else "${name}${pkgAttrs.separator}${version}";
+          path = if pkgAttrs ? path then pkgAttrs.path else name;
+          versionedPath = if version == null then path else "${path}${pkgAttrs.separator}${version}";
+        in
+          lib.nameValuePair key versionedPath;
+
+      flattenPackages = attrset:
+          lib.concatMapAttrs (name: value: value) (builtins.mapAttrs
+            (name: pkgAttrs:
+              lib.listToAttrs (lib.map ( version: (namePathEntry name version pkgAttrs) ) pkgAttrs.versions
+              ++ lib.optionals pkgAttrs.hasDefault [ (namePathEntry name null pkgAttrs) ])
+            )
+            attrset);
+
+      jdkPackages = import ./jdks.nix;
+      flatPackages = flattenPackages jdkPackages;
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfreePredicate = pkg: builtins.elem (pkgs.lib.getName pkg) allowedUnfree;
+        };
         lib = pkgs.lib;
-          jdkPackages = {
-            corretto = { hasDefault = false; versions = [ "11" "17" "21" ]; };
-            openjdk = { hasDefault = true; versions = [ "11" "17" "21" "24" ]; };
-            semeru-bin = { hasDefault = true; versions = [ "-11" "-17" "-21" ]; };
-            semeru-jre-bin = { hasDefault = true; versions = [ "-11" "-17" "-21" ]; };
-            temurin-bin = { hasDefault = true; versions = [ "-23" "-24" ]; };
-            temurin-jre-bin = { hasDefault = true; versions = [ "-11" "-17" "-21" "-23" "-24" ]; };
-            zulu = { hasDefault = true; versions = [ "11" "17" "21" "24" ]; };
-          };
 
-          getVersion = name:
-            let pkg = builtins.getAttr name pkgs;
-            in pkg.version or (pkg.meta.version or "unknown");
+          nixpkgsRef =
+            if inputs.nixpkgs ? url then inputs.nixpkgs.url
+            else if inputs.nixpkgs ? outPath && inputs.nixpkgs ? rev then "${inputs.nixpkgs.outPath} (rev ${inputs.nixpkgs.rev})"
+            else if inputs.nixpkgs ? outPath then inputs.nixpkgs.outPath
+            else "<unknown>";
 
-          flattenVersions = attrset:
-            lib.flatten (
-              lib.mapAttrsToList
-                (name: value:
-                  lib.map (version: "${name}${version}") value.versions
-                )
-                attrset
-            );
+#         nixpkgsRef =
+#           inputs.nixpkgs.url or
+#           inputs.nixpkgs.outPath or
+#           inputs.nixpkgs.rev;
 
-          flatPackages = flattenVersions jdkPackages;
 
-          versionMap = builtins.listToAttrs (
-            builtins.map (name: { inherit name; value = getVersion name; }) flatPackages
-          );
+          getPackageInfo = path:
+            let
+              pkg = lib.attrsets.getAttrFromPath (lib.splitString "." path) pkgs;
+              version = pkg.version or (pkg.meta.version or "unknown");
+              home = pkg.home;
+            in {
+              inherit version home;
+            };
 
-          # JSON-encoded string for nix run
-          versionMapJson = builtins.toJSON versionMap;
+          packageMap = lib.mapAttrs (
+            name: path: getPackageInfo path 
+          ) flatPackages;
       in
       {
-          #packages.${system}.jdk-dashboard = versionMap;
-
-        # You can build with: nix build .#jdk-dashboard
-        packages.jdk-dashboard = pkgs.writeText "jdk-dashboard.json" (builtins.toJSON versionMap);
-
-          apps.${system}.jdk-dashboard = {
-            type = "app";
-            program = "${pkgs.writeShellScriptBin "jdk-dashboard" ''
-              echo '${versionMapJson}'
-            ''}/bin/jdk-dashboard";
+          dashboard = {
+            system = "${system}";
+            nixpkgsSource = nixpkgsRef;
+            packages = packageMap;  
           };
-
-          # Or eval with: nix eval .#jdk-dashboard --json
-          defaultPackage = self.packages.${system}.jdk-dashboard;
        }
-    );
+    )
+    // {
+      inherit jdkPackages flatPackages;
+    };
 }
 
