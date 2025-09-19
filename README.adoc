@@ -10,7 +10,15 @@ A work-in-progress utility for displaying metadata about the Nix JDK package eco
 
 The default branch is `nixpkgs-unstable`
 
-You can pipe to `jq` to get formatted output.
+You can pipe to `jq` to get formatted output or to apply filters.
 
+For example to get the versions of `openjdk` packages only use:
+
+```
+./nix-jdk-dashboard.sh master | jq '.packages
+   | to_entries
+   | map(select(.key | startswith("openjdk")))
+   | map(.value.version)'
+```
 
  
