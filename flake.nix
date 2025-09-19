@@ -58,7 +58,8 @@
               version = pkg.version or (pkg.meta.version or "unknown");
               home = pkg.home;
             in {
-              inherit version home;
+              #inherit version home;
+              inherit version;
             };
 
           packageMap = lib.mapAttrs (
