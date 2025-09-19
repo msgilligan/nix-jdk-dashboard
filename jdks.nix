@@ -8,5 +8,5 @@
     semeru-jre-bin = { hasDefault = true; separator = "-"; versions = [ "11" "17" "21" ]; };
     temurin-bin = { hasDefault = true; separator = "-"; versions = [ "23" "24" ]; };
     temurin-jre-bin = { hasDefault = true; separator = "-"; versions = [ "11" "17" "21" "23" "24" ]; };
-    zulu = { hasDefault = true; separator = ""; versions = [ "8" "11" "17" "21" "24" ]; };
+    zulu = { hasDefault = true; separator = ""; versions = [ "8" "11" "17" "21" "24" "25" ]; };
 }
